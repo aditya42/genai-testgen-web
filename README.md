@@ -28,7 +28,9 @@ OpenAI or deterministic mock generates structured titles and step plans
            |
 Strict action/schema validation
            |
-generated_tests/login.spec.ts + generated_tests/cart.spec.ts
+Generated Playwright specs (login, cart, optional known defect)
+           |
+Page Object Model: LoginPage / InventoryPage / CartPage
            |
 BrowserStack Playwright (Windows 11 Chrome)
            |
@@ -39,7 +41,42 @@ Playwright JSON -> TestRail automated run/results
               Jira Bug candidates (needs-triage)
 ```
 
-The LLM is **not allowed to execute arbitrary code**. It must preserve accepted step sequences and may propose readable test titles. The code compiler maps only predefined actions from `test_generation/login.py` and `test_generation/cart.py`.
+The LLM is **not allowed to execute arbitrary code**. It must preserve accepted step sequences and may propose readable test titles. The code compiler maps only predefined actions from `test_generation/login.py` and `test_generation/cart.py` to typed Page Object Model methods. Page objects centralize selectors and browser interactions; assertions remain in the generated test specifications.
+
+## Page Object Model (POM)
+
+The browser automation now uses three reusable TypeScript page classes:
+
+| Page object | Responsibilities |
+| --- | --- |
+| `pages/LoginPage.ts` | Open login, enter username/password, submit, read error message |
+| `pages/InventoryPage.ts` | Add/remove inventory products, check cart badge, navigate to cart |
+| `pages/CartPage.ts` | Inspect cart items by product name and count |
+
+The generated `login.spec.ts`, `cart.spec.ts` and optional `known_defect.spec.ts` import these page objects and invoke their methods. **Tests own the expected outcomes**, page classes own UI locators and actions, and Python generation owns validated test plans and safe action-to-method mapping. A change to a SauceDemo selector should require updating only the corresponding page object.
+
+Example of a generated cart test:
+
+```typescript
+import { test, expect } from '@playwright/test';
+import { LoginPage } from '../pages/LoginPage';
+import { InventoryPage } from '../pages/InventoryPage';
+import { CartPage } from '../pages/CartPage';
+
+test('CART-001: add backpack', async ({ page }) => {
+  const loginPage = new LoginPage(page);
+  const inventoryPage = new InventoryPage(page);
+  const cartPage = new CartPage(page);
+
+  await loginPage.loginAs('standard_user', 'secret_sauce');
+  await inventoryPage.addToCart('sauce-labs-backpack');
+  await expect(inventoryPage.cartBadge).toHaveText('1');
+  await inventoryPage.openCart();
+  await expect(cartPage.itemNamed('Sauce Labs Backpack')).toBeVisible();
+});
+```
+
+The example above illustrates the POM structure; the actual generated test additionally checks navigation and includes the requirement/TestRail case marker.
 
 ## Quick start
 
@@ -103,6 +140,7 @@ The connected workflow maintains your requested limit of the **latest three test
 
 ## Repository
 
+- `pages/` — Playwright TypeScript Page Object Model (login, inventory, cart)
 - `test_generation/login.py` — five login scenarios
 - `test_generation/cart.py` — five post-login cart scenarios
 - `test_generation/runner.py` — test-case generation, TestRail/Jira synchronization, CLI
