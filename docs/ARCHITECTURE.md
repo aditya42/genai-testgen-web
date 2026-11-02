@@ -13,9 +13,22 @@ OpenAI-generated, validated login case plans
 
 BrowserStack hosts the browser, while SauceDemo remains the example application under test.
 
+## Page Object Model
+
+Browser UI interactions are implemented in TypeScript page classes under `pages/`:
+
+- `LoginPage`: login inputs, submit, error locator and reusable `loginAs()` workflow
+- `InventoryPage`: add/remove product actions, cart badge and cart navigation
+- `CartPage`: cart item counting and product-name selection
+
+The Python generator in `test_generation/` **does not embed CSS selectors** in the generated Playwright specs. It maps validated requirement-step IDs to simple page-object method calls and assertion statements. The TypeScript specs own the assertions and traceability markers (`[LOGIN-...]`, `[CART-...]`, `[TR:C...]`). The optional `known_defect.spec.ts` uses the same page classes with `problem_user`, preserving the synthetic-demo labeling safeguards.
+
+This keeps selector maintenance in one place without introducing an unnecessary base page or inheritance tree. BrowserStack, TestRail, Jira, generation validation and CI wiring are unchanged by this UI-layer refactor.
+
 ## Responsibilities
 
-- `test_generation/login.py`: bounded login requirements and approved Playwright commands.
+- `pages/`: TypeScript Page Object Model (selectors and browser actions).
+- `test_generation/login.py`, `test_generation/cart.py`: bounded requirements and approved page-object calls.
 - `test_generation/runner.py`: generation, TestRail/Jira APIs, run management, reporting and quality gate.
 - `test_generation/failure_triage.py`: excludes flaky, infrastructure and non-reproducible failures from automatic Jira filing.
 - `browserstack.yml`: browser platform and BrowserStack build settings.
