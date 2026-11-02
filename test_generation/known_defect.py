@@ -40,17 +40,21 @@ def compile_playwright(cases, mapping, root):
     prefix = f"[TR:C{mapping[item['id']]}]" if item["id"] in mapping else ""
     title = f"{prefix} [DEMO-001] {item['title']}".strip()
     statements = [
-        "await page.goto('/');",
-        """await page.locator('[data-test="username"]').fill('problem_user');""",
-        """await page.locator('[data-test="password"]').fill('secret_sauce');""",
-        """await page.locator('[data-test="login-button"]').click();""",
+        "await loginPage.loginAs('problem_user', 'secret_sauce');",
         r"await expect(page).toHaveURL(/\/inventory\.html$/);",
-        """await page.locator('[data-test="add-to-cart-sauce-labs-fleece-jacket"]').click();""",
-        """await expect(page.locator('[data-test="shopping-cart-badge"]')).toHaveText('1');""",
+        "await inventoryPage.addToCart('sauce-labs-fleece-jacket');",
+        "await expect(inventoryPage.cartBadge).toHaveText('1');",
     ]
-    output = ["import { test, expect } from '@playwright/test';",
-              f"test({json.dumps(title)}, async ({{ page }}) => {{",
-              *("  " + line for line in statements), "});"]
+    output = [
+        "import { test, expect } from '@playwright/test';",
+        "import { LoginPage } from '../pages/LoginPage';",
+        "import { InventoryPage } from '../pages/InventoryPage';",
+        f"test({json.dumps(title)}, async ({{ page }}) => {{",
+        "  const loginPage = new LoginPage(page);",
+        "  const inventoryPage = new InventoryPage(page);",
+        *("  " + line for line in statements),
+        "});",
+    ]
     path = Path(root) / "generated_tests" / "known_defect.spec.ts"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("\n".join(output) + "\n", encoding="utf-8")
