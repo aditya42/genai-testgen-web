@@ -98,5 +98,5 @@ def compile_playwright(cases, mapping, root):
             lines.append("  " + statement)
         lines.append("});")
     target = Path(root) / "specs" / "generated" / "login.spec.ts"
-    target.parent.mkdir(exist_ok=True)
+    target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text("\n".join(lines) + "\n", encoding="utf-8")
