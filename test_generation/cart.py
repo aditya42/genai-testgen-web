@@ -31,30 +31,50 @@ REQUIREMENTS = [
 
 ACTIONS = {
     "login": [
-        "await page.goto('/');",
-        """await page.locator('[data-test="username"]').fill('standard_user');""",
-        """await page.locator('[data-test="password"]').fill('secret_sauce');""",
-        """await page.locator('[data-test="login-button"]').click();""",
+        "await loginPage.loginAs('standard_user', 'secret_sauce');",
         r"await expect(page).toHaveURL(/\/inventory\.html$/);",
     ],
-    "add_backpack": ["""await page.locator('[data-test="add-to-cart-sauce-labs-backpack"]').click();"""],
-    "add_bike_light": ["""await page.locator('[data-test="add-to-cart-sauce-labs-bike-light"]').click();"""],
-    "badge_one": ["""await expect(page.locator('[data-test="shopping-cart-badge"]')).toHaveText('1');"""],
-    "badge_two": ["""await expect(page.locator('[data-test="shopping-cart-badge"]')).toHaveText('2');"""],
-    "badge_absent": ["""await expect(page.locator('[data-test="shopping-cart-badge"]')).toHaveCount(0);"""],
+    "add_backpack": [
+        "await inventoryPage.addToCart('sauce-labs-backpack');",
+    ],
+    "add_bike_light": [
+        "await inventoryPage.addToCart('sauce-labs-bike-light');",
+    ],
+    "badge_one": [
+        "await expect(inventoryPage.cartBadge).toHaveText('1');",
+    ],
+    "badge_two": [
+        "await expect(inventoryPage.cartBadge).toHaveText('2');",
+    ],
+    "badge_absent": [
+        "await expect(inventoryPage.cartBadge).toHaveCount(0);",
+    ],
     "open_cart": [
-        """await page.locator('[data-test="shopping-cart-link"]').click();""",
+        "await inventoryPage.openCart();",
         r"await expect(page).toHaveURL(/\/cart\.html$/);",
     ],
-    "backpack_visible": ["""await expect(page.locator('[data-test="inventory-item-name"]').filter({ hasText: 'Sauce Labs Backpack' })).toBeVisible();"""],
-    "bike_light_visible": ["""await expect(page.locator('[data-test="inventory-item-name"]').filter({ hasText: 'Sauce Labs Bike Light' })).toBeVisible();"""],
-    "remove_backpack": ["""await page.locator('[data-test="remove-sauce-labs-backpack"]').click();"""],
-    "backpack_absent": ["""await expect(page.locator('[data-test="inventory-item-name"]').filter({ hasText: 'Sauce Labs Backpack' })).toHaveCount(0);"""],
-    "cart_empty": ["""await expect(page.locator('.cart_item')).toHaveCount(0);"""],
-    "one_cart_item": ["""await expect(page.locator('.cart_item')).toHaveCount(1);"""],
-    "add_button_absent": ["""await expect(page.locator('[data-test="add-to-cart-sauce-labs-backpack"]')).toHaveCount(0);"""],
+    "backpack_visible": [
+        "await expect(cartPage.itemNamed('Sauce Labs Backpack')).toBeVisible();",
+    ],
+    "bike_light_visible": [
+        "await expect(cartPage.itemNamed('Sauce Labs Bike Light')).toBeVisible();",
+    ],
+    "remove_backpack": [
+        "await inventoryPage.removeFromCart('sauce-labs-backpack');",
+    ],
+    "backpack_absent": [
+        "await expect(cartPage.itemNamed('Sauce Labs Backpack')).toHaveCount(0);",
+    ],
+    "cart_empty": [
+        "await expect(cartPage.items).toHaveCount(0);",
+    ],
+    "one_cart_item": [
+        "await expect(cartPage.items).toHaveCount(1);",
+    ],
+    "add_button_absent": [
+        "await expect(inventoryPage.addButton('sauce-labs-backpack')).toHaveCount(0);",
+    ],
 }
-
 
 def mock_cases():
     return [
@@ -83,13 +103,23 @@ def validate_cases(cases):
 
 def compile_playwright(cases, mapping, root):
     validate_cases(cases)
-    lines = ["import { test, expect } from '@playwright/test';"]
+    lines = [
+        "import { test, expect } from '@playwright/test';",
+        "import { LoginPage } from '../pages/LoginPage';",
+        "import { InventoryPage } from '../pages/InventoryPage';",
+        "import { CartPage } from '../pages/CartPage';",
+    ]
     for case in cases:
         marker = f"[TR:C{mapping[case['id']]}] " if case["id"] in mapping else ""
         lines.append(
             f"test({json.dumps(marker + '[' + case['id'] + '] ' + case['title'])}, "
             "async ({ page }) => {"
         )
+        lines.extend([
+            "  const loginPage = new LoginPage(page);",
+            "  const inventoryPage = new InventoryPage(page);",
+            "  const cartPage = new CartPage(page);",
+        ])
         for action in case["steps"]:
             lines.extend("  " + statement for statement in ACTIONS[action])
         lines.append("});")
