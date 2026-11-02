@@ -118,8 +118,8 @@ class LoginGenerationTests(unittest.TestCase):
         generated = self.root / "specs" / "generated"
         login = (generated / "login.spec.ts").read_text()
         cart = (generated / "cart.spec.ts").read_text()
-        self.assertIn("annotateTest(testInfo, \\"LOGIN-001\\", 2)", login)
-        self.assertIn("annotateTest(testInfo, \\"CART-001\\", 7)", cart)
+        self.assertIn('annotateTest(testInfo, "LOGIN-001", 2)', login)
+        self.assertIn('annotateTest(testInfo, "CART-001", 7)', cart)
         self.assertIn("[TR:C2]", login)
         self.assertIn("[TR:C7]", cart)
 
