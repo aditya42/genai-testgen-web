@@ -23,31 +23,30 @@ REQUIREMENTS = [
 ]
 
 ACTIONS = {
-    "open_login": "await page.goto('/');",
-    "standard_username": """await page.locator('[data-test="username"]').fill('standard_user');""",
-    "locked_username": """await page.locator('[data-test="username"]').fill('locked_out_user');""",
-    "valid_password": """await page.locator('[data-test="password"]').fill('secret_sauce');""",
-    "wrong_password": """await page.locator('[data-test="password"]').fill('wrong_password');""",
-    "submit": """await page.locator('[data-test="login-button"]').click();""",
+    "open_login": "await loginPage.open();",
+    "standard_username": "await loginPage.enterUsername('standard_user');",
+    "locked_username": "await loginPage.enterUsername('locked_out_user');",
+    "valid_password": "await loginPage.enterPassword('secret_sauce');",
+    "wrong_password": "await loginPage.enterPassword('wrong_password');",
+    "submit": "await loginPage.submit();",
     "inventory": r"await expect(page).toHaveURL(/\/inventory\.html$/);",
     "invalid_error": (
-        """await expect(page.locator('[data-test="error"]'))"""
+        "await expect(loginPage.errorMessage)"
         ".toContainText('Username and password do not match');"
     ),
     "locked_error": (
-        """await expect(page.locator('[data-test="error"]'))"""
+        "await expect(loginPage.errorMessage)"
         ".toContainText('Sorry, this user has been locked out.');"
     ),
     "username_error": (
-        """await expect(page.locator('[data-test="error"]'))"""
+        "await expect(loginPage.errorMessage)"
         ".toContainText('Username is required');"
     ),
     "password_error": (
-        """await expect(page.locator('[data-test="error"]'))"""
+        "await expect(loginPage.errorMessage)"
         ".toContainText('Password is required');"
     ),
 }
-
 
 def mock_cases():
     """Deterministic, realistic baseline for offline test runs."""
@@ -78,11 +77,15 @@ def validate_cases(cases):
 def compile_playwright(cases, mapping, root):
     """Compile only approved actions; the LLM never supplies executable code."""
     validate_cases(cases)
-    lines = ["import { test, expect } from '@playwright/test';"]
+    lines = [
+        "import { test, expect } from '@playwright/test';",
+        "import { LoginPage } from '../pages/LoginPage';",
+    ]
     for case in cases:
         cid = mapping.get(case["id"])
         title = (f"[TR:C{cid}] " if cid else "") + f"[{case['id']}] {case['title']}"
         lines.append(f"test({json.dumps(title)}, async ({{ page }}) => {{")
+        lines.append("  const loginPage = new LoginPage(page);")
         for action in case["steps"]:
             statement = ACTIONS[action]
             if (os.getenv("DEMO_INJECT_FAILURE") == "true"
