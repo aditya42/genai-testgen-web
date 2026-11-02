@@ -37,6 +37,19 @@ This keeps selector maintenance in one place without introducing an unnecessary 
 - `.github/workflows/test-generation.yml`: manual live integration.
 - `.github/workflows/code-quality.yml`: lightweight local browser and unit-test CI.
 
+## Configuration, fixtures and test specifications
+
+- `config/environment.ts` reads `SAUCEDEMO_BASE_URL`, `PLAYWRIGHT_TIMEOUT_MS`, `PLAYWRIGHT_RETRIES` and `PLAYWRIGHT_WORKERS`. It validates URL schemes, disallows embedded credentials and rejects invalid numeric settings. Existing CI retries default to one; local retries default to zero.
+- `fixtures/testFixtures.ts` exposes fresh `loginPage`, `inventoryPage` and `cartPage` fixtures per test, with optional browser console/page-error evidence attached on failures.
+- `utils/testData.ts` centralizes **public SauceDemo demo** credentials and product IDs. `utils/traceability.ts` annotates each generated spec with requirement and TestRail case metadata; the existing `[TR:C#]` name marker remains the official TestRail sync contract.
+- `specs/generated/` contains the runnable test specifications: login, cart and the separately gated known-defect demonstration. Python creates them at runtime; they are intentionally not committed or duplicated as static specs.
+
+## Reporting and diagnostics
+
+Playwright writes HTML and JUnit reports in addition to the unchanged `reports/playwright-results.json` used by the Python TestRail/Jira synchronizer. Screenshots, video and trace ZIPs are captured for failed executions. The GitHub Actions artifacts include reports, traces and BrowserStack evidence. Read [reporting guide](REPORTING.md) for file locations and commands.
+
+The cloud execution, result synchronization, failure classification and three-run retention behavior remain unchanged by this framework-only refactor.
+
 ## Operational design
 
 BrowserStack credentials come from GitHub Actions Secrets, not source files. An OpenAI-backed or deterministic provider generates the test plans. The model cannot execute arbitrary code. TestRail case reconciliation uses stable requirement identifiers.
