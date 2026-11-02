@@ -45,6 +45,12 @@ jobs:
         run: npm run typecheck
       - name: Run Playwright smoke test
         run: npx playwright test
+      - name: Validate opt-in known-defect spec without executing its failure
+        env:
+          KNOWN_DEFECT_DEMO: 'true'
+        run: |
+          python -m test_generation.runner generate --provider mock
+          npm run typecheck
       - name: Upload failure diagnostics
         if: failure()
         uses: actions/upload-artifact@v4
