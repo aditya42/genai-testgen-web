@@ -78,6 +78,34 @@ test('CART-001: add backpack', async ({ page }) => {
 
 The example above illustrates the POM structure; the actual generated test additionally checks navigation and includes the requirement/TestRail case marker.
 
+## Reusable framework components
+
+The project includes more than Page Object Model classes. These components are shared by the AI-generated login/cart test specifications and BrowserStack execution:
+
+| Layer | Location | Purpose |
+| --- | --- | --- |
+| Configuration engine | `config/environment.ts` | Validates base URL, timeout, retries and optional worker count from environment variables |
+| Page objects | `pages/` | Reusable login, inventory and cart selectors/actions |
+| Custom fixtures | `fixtures/testFixtures.ts` | Fresh page-object instances per test, plus failure-only browser console diagnostics |
+| Executable test specs | `specs/generated/` | Runtime-generated Playwright login, cart and opt-in known-defect specs |
+| Test utilities | `utils/testData.ts`, `utils/traceability.ts` | Public SauceDemo training data, products and requirement/TestRail annotations |
+| Reporting and tracing | `playwright.config.ts`, `docs/REPORTING.md` | JSON, JUnit XML, HTML, screenshots, videos and trace ZIPs |
+| Execution and integration | `test_generation/runner.py` | LLM validation, TestRail results, Jira triage and CI summary |
+
+The JSON report remains at `reports/playwright-results.json` because TestRail result synchronization reads this exact location.
+
+You can override the built-in settings without editing source:
+
+```bash
+SAUCEDEMO_BASE_URL=https://www.saucedemo.com \
+PLAYWRIGHT_TIMEOUT_MS=30000 \
+PLAYWRIGHT_RETRIES=1 \
+PLAYWRIGHT_WORKERS=2 \
+npx playwright test
+```
+
+The defaults already target SauceDemo and apply one retry in CI. Tests are still independent and use a new browser page and fixture instances. The generated specs do not require manually written duplicate test cases.
+
 ## Quick start
 
 Requires Python 3.12+, Node.js 22+, and Playwright Chromium for local execution.
@@ -86,7 +114,9 @@ Requires Python 3.12+, Node.js 22+, and Playwright Chromium for local execution.
 npm install
 npx playwright install chromium
 python -m test_generation.runner generate --provider mock
+npm run typecheck
 npx playwright test
+npm run test:report
 python -m unittest discover -s tests -v
 ```
 
@@ -140,6 +170,10 @@ The connected workflow maintains your requested limit of the **latest three test
 
 ## Repository
 
+- `config/` — environment configuration engine
+- `fixtures/` — typed page-object fixtures and diagnostics
+- `specs/` — Playwright specs, generated at runtime
+- `utils/` — shared public demo data and traceability helpers
 - `pages/` — Playwright TypeScript Page Object Model (login, inventory, cart)
 - `test_generation/login.py` — five login scenarios
 - `test_generation/cart.py` — five post-login cart scenarios
@@ -151,6 +185,6 @@ The connected workflow maintains your requested limit of the **latest three test
 
 ## Validation
 
-The original five login flows were verified on BrowserStack and synchronized to TestRail in [run 41327291819](https://github.com/aditya42/prompt-engineered-testgen/actions/runs/41327291819). The new five cart cases need their own completed CI/browser execution before being described as verified. See the [quality checks](https://github.com/aditya42/prompt-engineered-testgen/actions/workflows/code-quality.yml).
+The original five login flows were verified on BrowserStack and synchronized to TestRail in [run 41327291819](https://github.com/aditya42/prompt-engineered-testgen/actions/runs/41327291819). The full ten-test login/cart suite passed in GitHub Actions following the Page Object Model refactor; the new reporting/fixtures changes require their own CI run. See the [quality checks](https://github.com/aditya42/prompt-engineered-testgen/actions/workflows/code-quality.yml).
 
 Coding follows PEP 8 and favors KISS, DRY, YAGNI, separation of concerns, and avoiding speculative infrastructure.
