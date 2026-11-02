@@ -110,6 +110,34 @@ class LoginGenerationTests(unittest.TestCase):
                 runner.rename_testrail_run(9, "41327291819")
         api.assert_called_once()
 
+    def test_generated_specs_have_traceability_annotations(self):
+        runner.playwright(runner.generate("mock"), {
+            "LOGIN-001": 2,
+            "CART-001": 7,
+        })
+        generated = self.root / "specs" / "generated"
+        login = (generated / "login.spec.ts").read_text()
+        cart = (generated / "cart.spec.ts").read_text()
+        self.assertIn("annotateTest(testInfo, \\"LOGIN-001\\", 2)", login)
+        self.assertIn("annotateTest(testInfo, \\"CART-001\\", 7)", cart)
+        self.assertIn("[TR:C2]", login)
+        self.assertIn("[TR:C7]", cart)
+
+    def test_framework_has_configuration_fixtures_utilities_and_reports(self):
+        root = Path(__file__).resolve().parent.parent
+        config = (root / "playwright.config.ts").read_text()
+        environment = (root / "config" / "environment.ts").read_text()
+        fixture = (root / "fixtures" / "testFixtures.ts").read_text()
+        for reporter in ("playwright-results.json", "junit.xml", "reports/html"):
+            self.assertIn(reporter, config)
+        self.assertIn("loadEnvironment()", config)
+        self.assertIn("PLAYWRIGHT_TIMEOUT_MS", environment)
+        self.assertIn("SAUCEDEMO_BASE_URL", environment)
+        self.assertIn("browserDiagnostics:", fixture)
+        self.assertIn("testInfo.attach", fixture)
+        self.assertTrue((root / "utils" / "traceability.ts").exists())
+        self.assertTrue((root / "utils" / "testData.ts").exists())
+
     def test_mock_covers_five_login_requirements(self):
         cases = runner.generate("mock")
         self.assertEqual(len(cases), 10)
