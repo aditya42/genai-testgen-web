@@ -142,7 +142,7 @@ class LoginGenerationTests(unittest.TestCase):
 
     def test_normal_generation_cleans_old_training_defect_spec(self):
         folder = self.root / "specs" / "generated"
-        folder.mkdir()
+        folder.mkdir(parents=True)
         old = folder / "known_defect.spec.ts"
         old.write_text("stale")
         runner.playwright(runner.generate("mock"), {})
