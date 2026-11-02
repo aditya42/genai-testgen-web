@@ -137,7 +137,7 @@ class LoginGenerationTests(unittest.TestCase):
         spec = (self.root / "generated_tests" / "known_defect.spec.ts").read_text()
         self.assertIn("problem_user", spec)
         self.assertIn("DEMO-001", spec)
-        self.assertIn("add-to-cart-sauce-labs-fleece-jacket", spec)
+        self.assertIn("inventoryPage.addToCart('sauce-labs-fleece-jacket')", spec)
         self.assertNotIn("intentional-demo-failure", spec)
 
     def test_normal_generation_cleans_old_training_defect_spec(self):
@@ -170,9 +170,38 @@ class LoginGenerationTests(unittest.TestCase):
         self.assertEqual(spec.count("test("), 5)
         self.assertIn("[CART-001]", spec)
         self.assertIn("[CART-005]", spec)
-        self.assertIn("add-to-cart-sauce-labs-backpack", spec)
-        self.assertIn("remove-sauce-labs-backpack", spec)
+        self.assertIn("inventoryPage.addToCart('sauce-labs-backpack')", spec)
+        self.assertIn("inventoryPage.removeFromCart('sauce-labs-backpack')", spec)
         self.assertIn("toHaveCount(0)", spec)
+
+    def test_generated_tests_use_page_objects_not_inline_selectors(self):
+        runner.playwright(runner.generate("mock"), {})
+        specs = self.root / "generated_tests"
+        login_spec = (specs / "login.spec.ts").read_text()
+        cart_spec = (specs / "cart.spec.ts").read_text()
+        self.assertIn("import { LoginPage } from '../pages/LoginPage'", login_spec)
+        self.assertIn("new LoginPage(page)", login_spec)
+        self.assertIn("loginPage.enterUsername('standard_user')", login_spec)
+        self.assertIn("loginPage.errorMessage", login_spec)
+        self.assertIn("new LoginPage(page)", cart_spec)
+        self.assertIn("new InventoryPage(page)", cart_spec)
+        self.assertIn("new CartPage(page)", cart_spec)
+        self.assertIn("cartPage.itemNamed('Sauce Labs Backpack')", cart_spec)
+        self.assertIn("cartPage.items", cart_spec)
+        for source in (login_spec, cart_spec):
+            self.assertNotIn("page.locator(", source)
+            self.assertNotIn("page.goto(", source)
+
+    def test_page_objects_centralize_saucedemo_locators(self):
+        pages = Path(__file__).resolve().parent.parent / "pages"
+        login_page = (pages / "LoginPage.ts").read_text()
+        inventory_page = (pages / "InventoryPage.ts").read_text()
+        cart_page = (pages / "CartPage.ts").read_text()
+        self.assertIn('[data-test="username"]', login_page)
+        self.assertIn('[data-test="login-button"]', login_page)
+        self.assertIn('add-to-cart-', inventory_page)
+        self.assertIn('remove-', inventory_page)
+        self.assertIn('.cart_item', cart_page)
 
     def test_cart_validation_rejects_unreviewed_failure_injection(self):
         cases = cart.mock_cases()
