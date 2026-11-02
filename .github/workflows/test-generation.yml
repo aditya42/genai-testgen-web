@@ -84,6 +84,9 @@ jobs:
       - name: Install BrowserStack Node SDK
         if: inputs.action != 'preview'
         run: npm install
+      - name: Typecheck generated tests and fixtures
+        if: inputs.action != 'preview'
+        run: npm run typecheck
       - name: Run Playwright on BrowserStack
         if: inputs.action != 'preview'
         continue-on-error: true
@@ -116,7 +119,7 @@ jobs:
           path: |
             state/
             reports/
-            generated_tests/
+            specs/generated/
             browserstack-artifacts/
             test-results/
           if-no-files-found: ignore

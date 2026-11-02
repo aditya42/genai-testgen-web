@@ -39,7 +39,18 @@ jobs:
           python-version: '3.12'
       - run: npm install
       - run: npx playwright install --with-deps chromium
-      - name: Generate login test cases
+      - name: Generate login and cart test cases
         run: python -m test_generation.runner generate --provider mock
+      - name: Typecheck framework and generated Playwright tests
+        run: npm run typecheck
       - name: Run Playwright smoke test
         run: npx playwright test
+      - name: Upload failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: local-playwright-diagnostics
+          path: |
+            reports/
+            test-results/
+          if-no-files-found: ignore

@@ -31,14 +31,14 @@ REQUIREMENTS = [
 
 ACTIONS = {
     "login": [
-        "await loginPage.loginAs('standard_user', 'secret_sauce');",
+        "await loginPage.loginAs(USERS.standard.username, USERS.password);",
         r"await expect(page).toHaveURL(/\/inventory\.html$/);",
     ],
     "add_backpack": [
-        "await inventoryPage.addToCart('sauce-labs-backpack');",
+        "await inventoryPage.addToCart(PRODUCTS.backpack.slug);",
     ],
     "add_bike_light": [
-        "await inventoryPage.addToCart('sauce-labs-bike-light');",
+        "await inventoryPage.addToCart(PRODUCTS.bikeLight.slug);",
     ],
     "badge_one": [
         "await expect(inventoryPage.cartBadge).toHaveText('1');",
@@ -54,13 +54,13 @@ ACTIONS = {
         r"await expect(page).toHaveURL(/\/cart\.html$/);",
     ],
     "backpack_visible": [
-        "await expect(cartPage.itemNamed('Sauce Labs Backpack')).toBeVisible();",
+        "await expect(cartPage.itemNamed(PRODUCTS.backpack.name)).toBeVisible();",
     ],
     "bike_light_visible": [
-        "await expect(cartPage.itemNamed('Sauce Labs Bike Light')).toBeVisible();",
+        "await expect(cartPage.itemNamed(PRODUCTS.bikeLight.name)).toBeVisible();",
     ],
     "remove_backpack": [
-        "await inventoryPage.removeFromCart('sauce-labs-backpack');",
+        "await inventoryPage.removeFromCart(PRODUCTS.backpack.slug);",
     ],
     "backpack_absent": [
         "await expect(cartPage.itemNamed('Sauce Labs Backpack')).toHaveCount(0);",
@@ -72,7 +72,7 @@ ACTIONS = {
         "await expect(cartPage.items).toHaveCount(1);",
     ],
     "add_button_absent": [
-        "await expect(inventoryPage.addButton('sauce-labs-backpack')).toHaveCount(0);",
+        "await expect(inventoryPage.addButton(PRODUCTS.backpack.slug)).toHaveCount(0);",
     ],
 }
 
@@ -104,25 +104,24 @@ def validate_cases(cases):
 def compile_playwright(cases, mapping, root):
     validate_cases(cases)
     lines = [
-        "import { test, expect } from '@playwright/test';",
-        "import { LoginPage } from '../pages/LoginPage';",
-        "import { InventoryPage } from '../pages/InventoryPage';",
-        "import { CartPage } from '../pages/CartPage';",
+        "import { test, expect } from '../../fixtures/testFixtures';",
+        "import { USERS, PRODUCTS } from '../../utils/testData';",
+        "import { annotateTest } from '../../utils/traceability';",
     ]
     for case in cases:
         marker = f"[TR:C{mapping[case['id']]}] " if case["id"] in mapping else ""
         lines.append(
             f"test({json.dumps(marker + '[' + case['id'] + '] ' + case['title'])}, "
-            "async ({ page }) => {"
+            "async ({ page, loginPage, inventoryPage, cartPage }, testInfo) => {"
         )
-        lines.extend([
-            "  const loginPage = new LoginPage(page);",
-            "  const inventoryPage = new InventoryPage(page);",
-            "  const cartPage = new CartPage(page);",
-        ])
+        case_id = mapping.get(case["id"])
+        lines.append(
+            f"  annotateTest(testInfo, {json.dumps(case['id'])}, "
+            f"{case_id if case_id is not None else 'undefined'});"
+        )
         for action in case["steps"]:
             lines.extend("  " + statement for statement in ACTIONS[action])
         lines.append("});")
-    target = Path(root) / "generated_tests" / "cart.spec.ts"
+    target = Path(root) / "specs" / "generated" / "cart.spec.ts"
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text("\n".join(lines) + "\n", encoding="utf-8")

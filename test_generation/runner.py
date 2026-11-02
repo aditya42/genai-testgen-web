@@ -140,7 +140,7 @@ def playwright(cases, mapping):
             [case for case in cases if case["id"] == "DEMO-001"], mapping, ROOT
         )
     else:
-        (ROOT / "generated_tests" / "known_defect.spec.ts").unlink(missing_ok=True)
+        (ROOT / "specs" / "generated" / "known_defect.spec.ts").unlink(missing_ok=True)
 
 
 def verify():

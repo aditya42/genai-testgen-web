@@ -24,10 +24,10 @@ REQUIREMENTS = [
 
 ACTIONS = {
     "open_login": "await loginPage.open();",
-    "standard_username": "await loginPage.enterUsername('standard_user');",
-    "locked_username": "await loginPage.enterUsername('locked_out_user');",
-    "valid_password": "await loginPage.enterPassword('secret_sauce');",
-    "wrong_password": "await loginPage.enterPassword('wrong_password');",
+    "standard_username": "await loginPage.enterUsername(USERS.standard.username);",
+    "locked_username": "await loginPage.enterUsername(USERS.locked.username);",
+    "valid_password": "await loginPage.enterPassword(USERS.password);",
+    "wrong_password": "await loginPage.enterPassword(USERS.incorrectPassword);",
     "submit": "await loginPage.submit();",
     "inventory": r"await expect(page).toHaveURL(/\/inventory\.html$/);",
     "invalid_error": (
@@ -78,14 +78,18 @@ def compile_playwright(cases, mapping, root):
     """Compile only approved actions; the LLM never supplies executable code."""
     validate_cases(cases)
     lines = [
-        "import { test, expect } from '@playwright/test';",
-        "import { LoginPage } from '../pages/LoginPage';",
+        "import { test, expect } from '../../fixtures/testFixtures';",
+        "import { USERS } from '../../utils/testData';",
+        "import { annotateTest } from '../../utils/traceability';",
     ]
     for case in cases:
         cid = mapping.get(case["id"])
         title = (f"[TR:C{cid}] " if cid else "") + f"[{case['id']}] {case['title']}"
-        lines.append(f"test({json.dumps(title)}, async ({{ page }}) => {{")
-        lines.append("  const loginPage = new LoginPage(page);")
+        lines.append(f"test({json.dumps(title)}, async ({{ page, loginPage }}, testInfo) => {{")
+        lines.append(
+            f"  annotateTest(testInfo, {json.dumps(case['id'])}, "
+            f"{cid if cid is not None else 'undefined'});"
+        )
         for action in case["steps"]:
             statement = ACTIONS[action]
             if (os.getenv("DEMO_INJECT_FAILURE") == "true"
@@ -93,6 +97,6 @@ def compile_playwright(cases, mapping, root):
                 statement = "await expect(page).toHaveURL(/intentional-demo-failure/);"
             lines.append("  " + statement)
         lines.append("});")
-    target = Path(root) / "generated_tests" / "login.spec.ts"
+    target = Path(root) / "specs" / "generated" / "login.spec.ts"
     target.parent.mkdir(exist_ok=True)
     target.write_text("\n".join(lines) + "\n", encoding="utf-8")

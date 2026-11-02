@@ -40,21 +40,21 @@ def compile_playwright(cases, mapping, root):
     prefix = f"[TR:C{mapping[item['id']]}]" if item["id"] in mapping else ""
     title = f"{prefix} [DEMO-001] {item['title']}".strip()
     statements = [
-        "await loginPage.loginAs('problem_user', 'secret_sauce');",
+        "await loginPage.loginAs(USERS.problem.username, USERS.password);",
         r"await expect(page).toHaveURL(/\/inventory\.html$/);",
-        "await inventoryPage.addToCart('sauce-labs-fleece-jacket');",
+        "await inventoryPage.addToCart(PRODUCTS.fleeceJacket.slug);",
         "await expect(inventoryPage.cartBadge).toHaveText('1');",
     ]
     output = [
-        "import { test, expect } from '@playwright/test';",
-        "import { LoginPage } from '../pages/LoginPage';",
-        "import { InventoryPage } from '../pages/InventoryPage';",
-        f"test({json.dumps(title)}, async ({{ page }}) => {{",
-        "  const loginPage = new LoginPage(page);",
-        "  const inventoryPage = new InventoryPage(page);",
+        "import { test, expect } from '../../fixtures/testFixtures';",
+        "import { USERS, PRODUCTS } from '../../utils/testData';",
+        "import { annotateTest } from '../../utils/traceability';",
+        f"test({json.dumps(title)}, async ({{ page, loginPage, inventoryPage }}, testInfo) => {{",
+        f"  annotateTest(testInfo, 'DEMO-001', "
+        f"{mapping[item['id']] if item['id'] in mapping else 'undefined'});",
         *("  " + line for line in statements),
         "});",
     ]
-    path = Path(root) / "generated_tests" / "known_defect.spec.ts"
+    path = Path(root) / "specs" / "generated" / "known_defect.spec.ts"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("\n".join(output) + "\n", encoding="utf-8")

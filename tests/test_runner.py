@@ -121,10 +121,10 @@ class LoginGenerationTests(unittest.TestCase):
 
     def test_compiler_generates_five_playwright_cases(self):
         runner.playwright(runner.generate("mock"), {})
-        spec = (self.root / "generated_tests" / "login.spec.ts").read_text()
+        spec = (self.root / "specs" / "generated" / "login.spec.ts").read_text()
         self.assertEqual(spec.count("test("), 5)
-        self.assertIn("standard_user", spec)
-        self.assertIn("locked_out_user", spec)
+        self.assertIn("USERS.standard.username", spec)
+        self.assertIn("USERS.locked.username", spec)
         self.assertIn("Username is required", spec)
         self.assertIn("Password is required", spec)
         self.assertIn("inventory", spec)
@@ -134,14 +134,14 @@ class LoginGenerationTests(unittest.TestCase):
             cases = runner.generate("mock")
             self.assertEqual(len(cases), 11)
             runner.playwright(cases, {})
-        spec = (self.root / "generated_tests" / "known_defect.spec.ts").read_text()
-        self.assertIn("problem_user", spec)
+        spec = (self.root / "specs" / "generated" / "known_defect.spec.ts").read_text()
+        self.assertIn("USERS.problem.username", spec)
         self.assertIn("DEMO-001", spec)
-        self.assertIn("inventoryPage.addToCart('sauce-labs-fleece-jacket')", spec)
+        self.assertIn("inventoryPage.addToCart(PRODUCTS.fleeceJacket.slug)", spec)
         self.assertNotIn("intentional-demo-failure", spec)
 
     def test_normal_generation_cleans_old_training_defect_spec(self):
-        folder = self.root / "generated_tests"
+        folder = self.root / "specs" / "generated"
         folder.mkdir()
         old = folder / "known_defect.spec.ts"
         old.write_text("stale")
@@ -166,27 +166,27 @@ class LoginGenerationTests(unittest.TestCase):
 
     def test_cart_positive_and_negative_specs_generated(self):
         runner.playwright(runner.generate("mock"), {})
-        spec = (self.root / "generated_tests" / "cart.spec.ts").read_text()
+        spec = (self.root / "specs" / "generated" / "cart.spec.ts").read_text()
         self.assertEqual(spec.count("test("), 5)
         self.assertIn("[CART-001]", spec)
         self.assertIn("[CART-005]", spec)
-        self.assertIn("inventoryPage.addToCart('sauce-labs-backpack')", spec)
-        self.assertIn("inventoryPage.removeFromCart('sauce-labs-backpack')", spec)
+        self.assertIn("inventoryPage.addToCart(PRODUCTS.backpack.slug)", spec)
+        self.assertIn("inventoryPage.removeFromCart(PRODUCTS.backpack.slug)", spec)
         self.assertIn("toHaveCount(0)", spec)
 
     def test_generated_tests_use_page_objects_not_inline_selectors(self):
         runner.playwright(runner.generate("mock"), {})
-        specs = self.root / "generated_tests"
+        specs = self.root / "specs" / "generated"
         login_spec = (specs / "login.spec.ts").read_text()
         cart_spec = (specs / "cart.spec.ts").read_text()
-        self.assertIn("import { LoginPage } from '../pages/LoginPage'", login_spec)
-        self.assertIn("new LoginPage(page)", login_spec)
-        self.assertIn("loginPage.enterUsername('standard_user')", login_spec)
+        self.assertIn("import { test, expect } from '../../fixtures/testFixtures'", login_spec)
+        self.assertIn("loginPage", login_spec)
+        self.assertIn("loginPage.enterUsername(USERS.standard.username)", login_spec)
         self.assertIn("loginPage.errorMessage", login_spec)
-        self.assertIn("new LoginPage(page)", cart_spec)
-        self.assertIn("new InventoryPage(page)", cart_spec)
-        self.assertIn("new CartPage(page)", cart_spec)
-        self.assertIn("cartPage.itemNamed('Sauce Labs Backpack')", cart_spec)
+        self.assertIn("loginPage", cart_spec)
+        self.assertIn("inventoryPage", cart_spec)
+        self.assertIn("cartPage", cart_spec)
+        self.assertIn("cartPage.itemNamed(PRODUCTS.backpack.name)", cart_spec)
         self.assertIn("cartPage.items", cart_spec)
         for source in (login_spec, cart_spec):
             self.assertNotIn("page.locator(", source)
@@ -243,7 +243,7 @@ class LoginGenerationTests(unittest.TestCase):
     def test_negative_demo_only_fails_positive_case(self):
         with patch.dict(os.environ, {"DEMO_INJECT_FAILURE": "true"}):
             runner.playwright(login.mock_cases() + cart.mock_cases(), {})
-        spec = (self.root / "generated_tests" / "login.spec.ts").read_text()
+        spec = (self.root / "specs" / "generated" / "login.spec.ts").read_text()
         self.assertEqual(spec.count("intentional-demo-failure"), 1)
 
     def test_publish_excludes_old_subscription_cases(self):

@@ -4,9 +4,11 @@ playwright-report/
 test-results/
 state/
 reports/
-generated_tests/
+specs/generated/
 __pycache__/
 
 .venv/
 .ruff_cache/
 *.py[cod]
+
+browserstack-artifacts/

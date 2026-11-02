@@ -3,10 +3,13 @@
   "private": true,
   "scripts": {
     "test": "playwright test",
-    "test:browserstack": "browserstack-node-sdk playwright test"
+    "test:browserstack": "browserstack-node-sdk playwright test",
+    "typecheck": "tsc --noEmit",
+    "test:report": "playwright show-report reports/html"
   },
   "devDependencies": {
     "@playwright/test": "1.56.1",
-    "browserstack-node-sdk": "^1.72.3"
+    "browserstack-node-sdk": "^1.72.3",
+    "typescript": "^5.9.3"
   }
 }
